@@ -1,5 +1,7 @@
+import { Collapse } from 'bootstrap';
+
 /* =========================================================
-   [YOUR COMPANY NAME] — Frontend script
+  Technograph — Frontend script
    Frontend-only for now. See TODO comments for future
    backend/API integration points.
    ========================================================= */
@@ -38,7 +40,7 @@ function initNavbarCollapseOnClick() {
   navMenu.querySelectorAll('a.nav-link, a.btn').forEach((link) => {
     link.addEventListener('click', () => {
       if (navMenu.classList.contains('show')) {
-        const bsCollapse = bootstrap.Collapse.getOrCreateInstance(navMenu);
+        const bsCollapse = Collapse.getOrCreateInstance(navMenu);
         bsCollapse.hide();
       }
     });
@@ -51,7 +53,7 @@ function initContactForm() {
   const status = document.getElementById('formStatus');
   if (!form) return;
 
-  form.addEventListener('submit', function (e) {
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
     if (!validateContactForm(form)) {
@@ -60,8 +62,7 @@ function initContactForm() {
       return;
     }
 
-    const data = collectFormData(form);
-    submitContactForm(data);
+    await submitContactForm(form, status);
   });
 }
 
@@ -71,42 +72,31 @@ function validateContactForm(form) {
   return valid;
 }
 
-function collectFormData(form) {
-  return {
-    name: form.name.value.trim(),
-    business: form.business.value.trim(),
-    email: form.email.value.trim(),
-    phone: form.phone.value.trim(),
-    interest: form.interest.value,
-    message: form.message.value.trim(),
-  };
-}
+async function submitContactForm(form, status) {
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  status.textContent = 'Sending your enquiry...';
+  status.style.color = '';
 
-function submitContactForm(data) {
-  // TODO: Connect contact form to backend API
-  // Example future integration:
-  //
-  // fetch('/api/contact', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(data),
-  // })
-  //   .then((res) => res.json())
-  //   .then((result) => showFormSuccess())
-  //   .catch((err) => showFormError(err));
+  try {
+    const response = await fetch('https://formspree.io/f/xkjgkwwo', {
+      method: 'POST',
+      body: new FormData(form),
+      headers: { Accept: 'application/json' },
+    });
 
-  console.log('Contact form data (not yet sent — no backend connected):', data);
-  showFormSuccess();
-}
+    if (!response.ok) throw new Error('Form submission failed');
 
-function showFormSuccess() {
-  const status = document.getElementById('formStatus');
-  const form = document.getElementById('contactForm');
-  status.textContent =
-    "Thanks — this form isn't connected to a server yet, but your enquiry details were captured.";
-  status.style.color = '#0E8F82';
-  form.reset();
-  form.classList.remove('was-validated');
+    status.textContent = "Thanks. Your enquiry has been sent. We'll be in touch soon.";
+    status.style.color = '#0E8F82';
+    form.reset();
+    form.classList.remove('was-validated');
+  } catch {
+    status.textContent = 'We could not send your enquiry. Please try again or email technographinformation@gmail.com.';
+    status.style.color = '#B4232C';
+  } finally {
+    submitButton.disabled = false;
+  }
 }
 
 /* =========================================================
